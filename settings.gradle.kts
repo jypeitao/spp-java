@@ -22,5 +22,8 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "app"
+rootProject.name = "spp"
 include(":app")
+include(":common")
+include(":spp-server")
+include(":spp-client")
