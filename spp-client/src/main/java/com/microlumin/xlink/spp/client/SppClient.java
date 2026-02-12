@@ -26,7 +26,7 @@ public class SppClient {
     }
 
     public synchronized void connect(String address) {
-        BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
+        BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address.toUpperCase());
         connect(device);
     }
 
@@ -73,9 +73,13 @@ public class SppClient {
 
         @SuppressLint("MissingPermission")
         public void run() {
-            if (bluetoothAdapter.isDiscovering()) {
-                Log.i(TAG, "cancelDiscovery");
-                bluetoothAdapter.cancelDiscovery();
+            try {
+                if (bluetoothAdapter.isDiscovering()) {
+                    Log.i(TAG, "cancelDiscovery");
+                    bluetoothAdapter.cancelDiscovery();
+                }
+            } catch (SecurityException e) {
+                Log.e(TAG, "Missing BLUETOOTH_SCAN permission to check/cancel discovery", e);
             }
 
             try {
