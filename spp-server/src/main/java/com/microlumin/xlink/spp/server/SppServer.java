@@ -20,6 +20,35 @@ public class SppServer {
     private AcceptThread acceptThread;
     private SppSocketWrapper socketWrapper;
     private final SppCallback callback;
+    private boolean isStopped = true;
+
+    private final SppCallback internalCallback = new SppCallback() {
+        @Override
+        public void onConnected(String deviceName, String deviceAddress) {
+            if (callback != null) callback.onConnected(deviceName, deviceAddress);
+        }
+
+        @Override
+        public void onDisconnected() {
+            if (callback != null) callback.onDisconnected();
+            synchronized (SppServer.this) {
+                if (!isStopped) {
+                    Log.d(TAG, "Re-starting AcceptThread after disconnection");
+                    startAcceptThread();
+                }
+            }
+        }
+
+        @Override
+        public void onDataReceived(byte[] data) {
+            if (callback != null) callback.onDataReceived(data);
+        }
+
+        @Override
+        public void onError(String message) {
+            if (callback != null) callback.onError(message);
+        }
+    };
 
     public SppServer(SppCallback callback) {
         this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -28,13 +57,26 @@ public class SppServer {
 
     public synchronized void start() {
         Log.d(TAG, "start()");
-        stop();
+        isStopped = false;
+        stopThreads();
+        startAcceptThread();
+    }
+
+    private void startAcceptThread() {
+        if (acceptThread != null) {
+            acceptThread.cancel();
+        }
         acceptThread = new AcceptThread();
         acceptThread.start();
     }
 
     public synchronized void stop() {
         Log.d(TAG, "stop()");
+        isStopped = true;
+        stopThreads();
+    }
+
+    private void stopThreads() {
         if (acceptThread != null) {
             acceptThread.cancel();
             acceptThread = null;
@@ -115,7 +157,7 @@ public class SppServer {
 
     @SuppressLint("MissingPermission")
     private void manageConnectedSocket(BluetoothSocket socket) {
-        socketWrapper = new SppSocketWrapper(socket, callback);
+        socketWrapper = new SppSocketWrapper(socket, internalCallback);
         socketWrapper.start();
         if (callback != null) {
             callback.onConnected(socket.getRemoteDevice().getName(), socket.getRemoteDevice().getAddress());
