@@ -189,7 +189,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void startClient(@NonNull String mac) {
         stopAll();
-        sppClient = new SppClient(callback);
+        sppClient = new SppClient(this, callback);
         sppClient.connect(mac);
         tvStatus.setText("正在连接 " + mac + "...");
         btnStart.setText("断开");

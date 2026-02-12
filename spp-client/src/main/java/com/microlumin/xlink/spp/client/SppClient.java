@@ -4,6 +4,10 @@ import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.util.Log;
 
 import com.microlumin.xlink.spp.common.SppCallback;
@@ -16,11 +20,13 @@ public class SppClient {
     private static final String TAG = "SppClient";
 
     private final BluetoothAdapter bluetoothAdapter;
+    private final Context context;
     private ConnectThread connectThread;
     private SppSocketWrapper socketWrapper;
     private final SppCallback callback;
 
-    public SppClient(SppCallback callback) {
+    public SppClient(Context context, SppCallback callback) {
+        this.context = context.getApplicationContext();
         this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         this.callback = callback;
     }
@@ -73,6 +79,60 @@ public class SppClient {
 
         @SuppressLint("MissingPermission")
         public void run() {
+            BluetoothDevice device = socket.getRemoteDevice();
+            if (device.getBondState() == BluetoothDevice.BOND_NONE) {
+                Log.d(TAG, "Device not bonded, initiating pairing and waiting for broadcast...");
+                final Object bondLock = new Object();
+                BroadcastReceiver receiver = new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        String action = intent.getAction();
+                        if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
+                            BluetoothDevice bondedDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                            if (bondedDevice != null && bondedDevice.getAddress().equals(device.getAddress())) {
+                                int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE);
+                                Log.d(TAG, "Device bonded (state: " + state + ")");
+                                if (state == BluetoothDevice.BOND_BONDED || state == BluetoothDevice.BOND_NONE) {
+                                    synchronized (bondLock) {
+                                        bondLock.notifyAll();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                };
+
+                IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+                context.registerReceiver(receiver, filter);
+
+                try {
+                    if (device.createBond()) {
+                        synchronized (bondLock) {
+                            bondLock.wait(60000); // Wait up to 60 seconds
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    Log.e(TAG, "Interrupted while waiting for bonding", e);
+                } finally {
+                    try {
+                        context.unregisterReceiver(receiver);
+                    } catch (Exception e) {
+                        // Ignore
+                    }
+                }
+            }
+
+            // 检查配对状态，只有配对成功才继续连接
+            if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
+                Log.w(TAG, "Device not bonded (state: " + device.getBondState() + "), skipping connect");
+                synchronized (SppClient.this) {
+                    if (connectThread == this) {
+                        if (callback != null) callback.onError("Device pairing failed or cancelled");
+                    }
+                }
+                return;
+            }
+
             try {
                 if (bluetoothAdapter.isDiscovering()) {
                     Log.i(TAG, "cancelDiscovery");
