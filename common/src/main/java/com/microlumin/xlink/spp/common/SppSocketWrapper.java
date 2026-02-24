@@ -66,7 +66,12 @@ public class SppSocketWrapper {
     public synchronized boolean send(byte[] data) {
         if (outputStream != null) {
             try {
-                outputStream.write(data);
+                int offset = 0;
+                while (offset < data.length) {
+                    int length = Math.min(data.length - offset, SppConstants.MAX_WRITE_SIZE);
+                    outputStream.write(data, offset, length);
+                    offset += length;
+                }
                 outputStream.flush();
                 return true;
             } catch (IOException e) {
