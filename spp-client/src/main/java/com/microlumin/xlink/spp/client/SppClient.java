@@ -104,6 +104,13 @@ public class SppClient {
         return false;
     }
 
+    public synchronized boolean sendPacket(byte[] payload) {
+        if (socketWrapper != null) {
+            return socketWrapper.sendPacket(payload);
+        }
+        return false;
+    }
+
     private class ConnectThread extends Thread {
         private final BluetoothSocket socket;
 
@@ -243,6 +250,11 @@ public class SppClient {
                         connectedDevice = null;
                     }
                 }
+            }
+
+            @Override
+            public void onPacketReceived(byte[] payload) {
+                if (callback != null) callback.onPacketReceived(payload);
             }
 
             @Override

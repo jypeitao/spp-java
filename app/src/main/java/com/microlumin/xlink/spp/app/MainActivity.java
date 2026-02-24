@@ -83,8 +83,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onDataReceived(byte[] data) {
-            runOnUiThread(() -> addMessage("对方: " + new String(data)));
+        public void onPacketReceived(byte[] payload) {
+            runOnUiThread(() -> addMessage("对方(包): " + new String(payload)));
         }
 
         @Override
@@ -173,9 +173,9 @@ public class MainActivity extends AppCompatActivity {
             boolean ok = false;
             byte[] data = text.getBytes();
             if (currentMode == Mode.SERVER && sppServer != null) {
-                ok = sppServer.send(data);
+                ok = sppServer.sendPacket(data);
             } else if (currentMode == Mode.CLIENT && sppClient != null) {
-                ok = sppClient.send(data);
+                ok = sppClient.sendPacket(data);
             }
             if (ok) {
                 addMessage("我: " + text);

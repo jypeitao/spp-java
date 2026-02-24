@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.List;
 
 public class SppSocketWrapper {
     private static final String TAG = "SppSocketWrapper";
@@ -15,6 +16,7 @@ public class SppSocketWrapper {
     private OutputStream outputStream;
     private boolean isRunning = false;
     private Thread readThread;
+    private final SppPacketDecoder decoder = new SppPacketDecoder();
 
     public SppSocketWrapper(BluetoothSocket socket, SppCallback callback) {
         this.socket = socket;
@@ -42,8 +44,16 @@ public class SppSocketWrapper {
                     try {
                         bytes = inputStream.read(buffer);
                         if (bytes > 0) {
+                            byte[] data = Arrays.copyOf(buffer, bytes);
                             if (callback != null) {
-                                callback.onDataReceived(Arrays.copyOf(buffer, bytes));
+                                // 默认依然回调原始数据
+                                callback.onDataReceived(data);
+
+                                // 同时尝试解析协议包
+                                List<byte[]> packets = decoder.decode(data);
+                                for (byte[] payload : packets) {
+                                    callback.onPacketReceived(payload);
+                                }
                             }
                         } else if (bytes == -1) {
                             XLog.d(TAG, "Socket closed by remote");
@@ -64,6 +74,18 @@ public class SppSocketWrapper {
     }
 
     public synchronized boolean send(byte[] data) {
+        return sendInternal(data);
+    }
+
+    /**
+     * 发送协议包（自动添加包头和长度）。
+     */
+    public synchronized boolean sendPacket(byte[] payload) {
+        byte[] packet = SppPacketDecoder.encode(payload);
+        return sendInternal(packet);
+    }
+
+    private boolean sendInternal(byte[] data) {
         if (outputStream != null) {
             try {
                 int offset = 0;

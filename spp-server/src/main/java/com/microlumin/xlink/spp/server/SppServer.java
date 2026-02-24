@@ -66,6 +66,11 @@ public class SppServer {
         }
 
         @Override
+        public void onPacketReceived(byte[] payload) {
+            if (callback != null) callback.onPacketReceived(payload);
+        }
+
+        @Override
         public void onDataReceived(byte[] data) {
             if (callback != null) callback.onDataReceived(data);
         }
@@ -164,6 +169,13 @@ public class SppServer {
     public synchronized boolean send(byte[] data) {
         if (socketWrapper != null) {
             return socketWrapper.send(data);
+        }
+        return false;
+    }
+
+    public synchronized boolean sendPacket(byte[] payload) {
+        if (socketWrapper != null) {
+            return socketWrapper.sendPacket(payload);
         }
         return false;
     }

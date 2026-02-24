@@ -11,4 +11,14 @@ public class SppConstants {
      * 虽然 RFCOMM 会处理分包，但为了兼容性和性能，建议单次 write 不要超过 1KB。
      */
     public static final int MAX_WRITE_SIZE = 1024;
+
+    /**
+     * 协议包头：0xAA 0x55
+     */
+    public static final byte[] PACKET_HEADER = {(byte) 0xAA, (byte) 0x55};
+
+    /**
+     * 协议长度字段大小（字节数）：int 类型为 4 字节
+     */
+    public static final int PACKET_LENGTH_SIZE = 4;
 }
