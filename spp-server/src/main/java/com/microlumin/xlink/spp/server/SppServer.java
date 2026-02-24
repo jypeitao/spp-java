@@ -2,6 +2,7 @@ package com.microlumin.xlink.spp.server;
 
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
@@ -12,6 +13,7 @@ import com.microlumin.xlink.spp.common.XLog;
 import com.microlumin.xlink.spp.common.SppCallback;
 import com.microlumin.xlink.spp.common.SppConstants;
 import com.microlumin.xlink.spp.common.SppSocketWrapper;
+import com.microlumin.xlink.spp.common.SppState;
 
 import java.io.IOException;
 
@@ -24,6 +26,8 @@ public class SppServer {
     private SppSocketWrapper socketWrapper;
     private final SppCallback callback;
     private boolean isStarted = false;
+    private SppState state = SppState.DISCONNECTED;
+    private BluetoothDevice connectedDevice;
 
     private final BroadcastReceiver bluetoothStateReceiver = new BroadcastReceiver() {
         @Override
@@ -48,17 +52,15 @@ public class SppServer {
 
     private final SppCallback internalCallback = new SppCallback() {
         @Override
-        public void onConnected(String deviceName, String deviceAddress) {
-            if (callback != null) callback.onConnected(deviceName, deviceAddress);
-        }
-
-        @Override
-        public void onDisconnected() {
-            if (callback != null) callback.onDisconnected();
-            synchronized (SppServer.this) {
-                if (isStarted && bluetoothAdapter.isEnabled()) {
-                    XLog.d(TAG, "Re-starting AcceptThread after disconnection");
-                    startAcceptThread();
+        public void onStateChanged(SppState state, String deviceName, String deviceAddress) {
+            if (state == SppState.DISCONNECTED) {
+                synchronized (SppServer.this) {
+                    setState(SppState.DISCONNECTED);
+                    connectedDevice = null;
+                    if (isStarted && bluetoothAdapter.isEnabled()) {
+                        XLog.d(TAG, "Re-starting AcceptThread after disconnection");
+                        startAcceptThread();
+                    }
                 }
             }
         }
@@ -78,6 +80,34 @@ public class SppServer {
         this.context = context.getApplicationContext();
         this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         this.callback = callback;
+    }
+
+    public synchronized SppState getState() {
+        return state;
+    }
+
+    private synchronized void setState(SppState state) {
+        setState(state, connectedDevice);
+    }
+
+    @SuppressLint("MissingPermission")
+    private synchronized void setState(SppState state, BluetoothDevice device) {
+        if (device != null) {
+            connectedDevice = device;
+            setState(state, device.getName(), device.getAddress());
+        } else {
+            setState(state, null, null);
+        }
+    }
+
+    private synchronized void setState(SppState state, String deviceName, String deviceAddress) {
+        if (this.state != state) {
+            XLog.d(TAG, "State changed: " + this.state + " -> " + state);
+            this.state = state;
+            if (callback != null) {
+                callback.onStateChanged(state, deviceName, deviceAddress);
+            }
+        }
     }
 
     public synchronized void start() {
@@ -100,6 +130,8 @@ public class SppServer {
         if (!isStarted) return;
         isStarted = false;
 
+        setState(SppState.DISCONNECTING);
+
         try {
             context.unregisterReceiver(bluetoothStateReceiver);
         } catch (Exception e) {
@@ -107,6 +139,7 @@ public class SppServer {
         }
 
         stopThreads();
+        setState(SppState.DISCONNECTED);
     }
 
     private void stopThreads() {
@@ -200,8 +233,7 @@ public class SppServer {
     private void manageConnectedSocket(BluetoothSocket socket) {
         socketWrapper = new SppSocketWrapper(socket, internalCallback);
         socketWrapper.start();
-        if (callback != null) {
-            callback.onConnected(socket.getRemoteDevice().getName(), socket.getRemoteDevice().getAddress());
-        }
+        BluetoothDevice device = socket.getRemoteDevice();
+        setState(SppState.CONNECTED, device);
     }
 }

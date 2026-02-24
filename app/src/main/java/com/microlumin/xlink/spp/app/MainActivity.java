@@ -26,6 +26,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.microlumin.xlink.spp.common.SppCallback;
+import com.microlumin.xlink.spp.common.SppState;
 import com.microlumin.xlink.spp.client.SppClient;
 import com.microlumin.xlink.spp.server.SppServer;
 
@@ -55,18 +56,29 @@ public class MainActivity extends AppCompatActivity {
 
     private final SppCallback callback = new SppCallback() {
         @Override
-        public void onConnected(String deviceName, String deviceAddress) {
+        public void onStateChanged(SppState state, String deviceName, String deviceAddress) {
             runOnUiThread(() -> {
-                tvStatus.setText("已连接: " + deviceName + " (" + deviceAddress + ")");
-                addMessage("[系统] 已连接到 " + deviceName + " (" + deviceAddress + ")");
-            });
-        }
-
-        @Override
-        public void onDisconnected() {
-            runOnUiThread(() -> {
-                tvStatus.setText("已断开");
-                addMessage("[系统] 连接已断开");
+                updateStatusText();
+                // 根据状态更新按钮文案（尤其是客户端断开后应显示“连接客户端”）
+                if (currentMode == Mode.CLIENT) {
+                    switch (state) {
+                        case CONNECTED:
+                        case CONNECTING:
+                        case DISCONNECTING:
+                            btnStart.setText("断开");
+                            break;
+                        case DISCONNECTED:
+                        default:
+                            stopAll();
+                            btnStart.setText("连接客户端");
+                            break;
+                    }
+                }
+                if (state == SppState.CONNECTED) {
+                    addMessage("[系统] 已连接到 " + deviceName + " (" + deviceAddress + ")");
+                } else if (state == SppState.DISCONNECTED) {
+                    addMessage("[系统] 连接已断开");
+                }
             });
         }
 
@@ -119,13 +131,13 @@ public class MainActivity extends AppCompatActivity {
                 currentMode = Mode.SERVER;
                 etMac.setVisibility(View.GONE);
                 btnStart.setText("启动服务端");
-                tvStatus.setText("未连接");
+                updateStatusText();
                 addMessage("[系统] 已切换到服务端模式");
             } else {
                 currentMode = Mode.CLIENT;
                 etMac.setVisibility(View.VISIBLE);
                 btnStart.setText("连接客户端");
-                tvStatus.setText("未连接");
+                updateStatusText();
                 addMessage("[系统] 已切换到客户端模式");
             }
             stopAll();
@@ -138,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
             }
             if (isRunning()) {
                 stopAll();
-                tvStatus.setText("未连接");
+                updateStatusText();
                 btnStart.setText(currentMode == Mode.SERVER ? "启动服务端" : "连接客户端");
                 addMessage("[系统] 已停止");
                 return;
@@ -182,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
         stopAll();
         sppServer = new SppServer(this, callback);
         sppServer.start();
-        tvStatus.setText("等待客户端连接...");
+        updateStatusText();
         btnStart.setText("停止");
         addMessage("[系统] 服务端已启动，等待连接");
     }
@@ -191,9 +203,36 @@ public class MainActivity extends AppCompatActivity {
         stopAll();
         sppClient = new SppClient(this, callback);
         sppClient.connect(mac);
-        tvStatus.setText("正在连接 " + mac + "...");
+        updateStatusText();
         btnStart.setText("断开");
         addMessage("[系统] 正在连接对端：" + mac);
+    }
+
+    private void updateStatusText() {
+        SppState state = SppState.DISCONNECTED;
+        if (currentMode == Mode.SERVER && sppServer != null) {
+            state = sppServer.getState();
+        } else if (currentMode == Mode.CLIENT && sppClient != null) {
+            state = sppClient.getState();
+        }
+
+        String stateStr;
+        switch (state) {
+            case CONNECTING:
+                stateStr = "正在连接...";
+                break;
+            case CONNECTED:
+                stateStr = "已连接";
+                break;
+            case DISCONNECTING:
+                stateStr = "正在断开...";
+                break;
+            case DISCONNECTED:
+            default:
+                stateStr = "未连接";
+                break;
+        }
+        tvStatus.setText("状态: " + stateStr);
     }
 
     private void stopAll() {

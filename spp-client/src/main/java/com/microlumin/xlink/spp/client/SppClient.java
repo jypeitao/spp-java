@@ -12,6 +12,7 @@ import com.microlumin.xlink.spp.common.XLog;
 import com.microlumin.xlink.spp.common.SppCallback;
 import com.microlumin.xlink.spp.common.SppConstants;
 import com.microlumin.xlink.spp.common.SppSocketWrapper;
+import com.microlumin.xlink.spp.common.SppState;
 
 import java.io.IOException;
 
@@ -23,11 +24,41 @@ public class SppClient {
     private ConnectThread connectThread;
     private SppSocketWrapper socketWrapper;
     private final SppCallback callback;
+    private SppState state = SppState.DISCONNECTED;
+    private BluetoothDevice connectedDevice;
 
     public SppClient(Context context, SppCallback callback) {
         this.context = context.getApplicationContext();
         this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         this.callback = callback;
+    }
+
+    public synchronized SppState getState() {
+        return state;
+    }
+
+    private synchronized void setState(SppState state) {
+        setState(state, connectedDevice);
+    }
+
+    @SuppressLint("MissingPermission")
+    private synchronized void setState(SppState state, BluetoothDevice device) {
+        if (device != null) {
+            connectedDevice = device;
+            setState(state, device.getName(), device.getAddress());
+        } else {
+            setState(state, null, null);
+        }
+    }
+
+    private synchronized void setState(SppState state, String deviceName, String deviceAddress) {
+        if (this.state != state) {
+            XLog.d(TAG, "State changed: " + this.state + " -> " + state);
+            this.state = state;
+            if (callback != null) {
+                callback.onStateChanged(state, deviceName, deviceAddress);
+            }
+        }
     }
 
     public synchronized void connect(String address) {
@@ -36,15 +67,25 @@ public class SppClient {
     }
 
     public synchronized void connect(BluetoothDevice device) {
-        if (connectThread != null) {
-            connectThread.cancel();
-            connectThread = null;
+        if (state == SppState.CONNECTING || state == SppState.CONNECTED) {
+            if (connectedDevice != null && connectedDevice.getAddress().equals(device.getAddress())) {
+                XLog.d(TAG, "Already " + state + " to " + device.getAddress() + ", ignore connect request");
+                return;
+            }
+            XLog.d(TAG, "Connecting/Connected to another device, disconnecting first");
+            disconnect();
         }
+        connectedDevice = device;
+        setState(SppState.CONNECTING, device);
         connectThread = new ConnectThread(device);
         connectThread.start();
     }
 
     public synchronized void disconnect() {
+        if (state == SppState.DISCONNECTED || state == SppState.DISCONNECTING) {
+            return;
+        }
+        setState(SppState.DISCONNECTING);
         if (connectThread != null) {
             connectThread.cancel();
             connectThread = null;
@@ -53,6 +94,7 @@ public class SppClient {
             socketWrapper.stop();
             socketWrapper = null;
         }
+        setState(SppState.DISCONNECTED);
     }
 
     public synchronized boolean send(byte[] data) {
@@ -126,7 +168,10 @@ public class SppClient {
                 XLog.w(TAG, "Device not bonded (state: " + device.getBondState() + "), skipping connect");
                 synchronized (SppClient.this) {
                     if (connectThread == this) {
-                        if (callback != null) callback.onError("Device pairing failed or cancelled");
+                        setState(SppState.DISCONNECTED);
+                        if (callback != null) {
+                            callback.onError("Device pairing failed or cancelled");
+                        }
                     }
                 }
                 return;
@@ -153,6 +198,7 @@ public class SppClient {
                 }
                 synchronized (SppClient.this) {
                     if (connectThread == this) {
+                        setState(SppState.DISCONNECTED);
                         if (callback != null) callback.onError("Connection failed: " + e.getMessage());
                     }
                 }
@@ -188,10 +234,29 @@ public class SppClient {
 
     @SuppressLint("MissingPermission")
     private void manageConnectedSocket(BluetoothSocket socket) {
-        socketWrapper = new SppSocketWrapper(socket, callback);
+        socketWrapper = new SppSocketWrapper(socket, new SppCallback() {
+            @Override
+            public void onStateChanged(SppState state, String deviceName, String deviceAddress) {
+                if (state == SppState.DISCONNECTED) {
+                    synchronized (SppClient.this) {
+                        setState(SppState.DISCONNECTED);
+                        connectedDevice = null;
+                    }
+                }
+            }
+
+            @Override
+            public void onDataReceived(byte[] data) {
+                if (callback != null) callback.onDataReceived(data);
+            }
+
+            @Override
+            public void onError(String message) {
+                if (callback != null) callback.onError(message);
+            }
+        });
         socketWrapper.start();
-        if (callback != null) {
-            callback.onConnected(socket.getRemoteDevice().getName(), socket.getRemoteDevice().getAddress());
-        }
+        BluetoothDevice device = socket.getRemoteDevice();
+        setState(SppState.CONNECTED, device);
     }
 }

@@ -52,7 +52,7 @@ public class SppSocketWrapper {
                     } catch (IOException e) {
                         if (isRunning) {
                             XLog.e(TAG, "Error reading from stream", e);
-                            if (callback != null) callback.onDisconnected();
+                            if (callback != null) callback.onStateChanged(SppState.DISCONNECTED, null, null);
                         }
                         break;
                     }
