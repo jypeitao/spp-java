@@ -56,6 +56,9 @@ public class MainActivity extends AppCompatActivity {
     private Runnable speedRunnable;
     private final AtomicLong bytesSent = new AtomicLong(0);
     private final AtomicLong bytesReceived = new AtomicLong(0);
+    private final AtomicLong sentPacketCount = new AtomicLong(0);
+    private final AtomicLong lostPacketCount = new AtomicLong(0);
+    private long lastReceivedSeq = -1;
     private long lastBytesSent = 0;
     private long lastBytesReceived = 0;
     private final Random random = new Random();
@@ -102,6 +105,22 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPacketReceived(byte[] payload) {
             bytesReceived.addAndGet(payload.length);
+            if (isStressTesting && payload.length >= 8) {
+                long currentSeq = ((long) (payload[0] & 0xFF) << 56) |
+                                 ((long) (payload[1] & 0xFF) << 48) |
+                                 ((long) (payload[2] & 0xFF) << 40) |
+                                 ((long) (payload[3] & 0xFF) << 32) |
+                                 ((long) (payload[4] & 0xFF) << 24) |
+                                 ((long) (payload[5] & 0xFF) << 16) |
+                                 ((long) (payload[6] & 0xFF) << 8) |
+                                 ((long) (payload[7] & 0xFF));
+                if (lastReceivedSeq != -1) {
+                    if (currentSeq > lastReceivedSeq + 1) {
+                        lostPacketCount.addAndGet(currentSeq - lastReceivedSeq - 1);
+                    }
+                }
+                lastReceivedSeq = currentSeq;
+            }
             runOnUiThread(() -> {
                 if (!isStressTesting) {
                     addMessage("对方(包): " + new String(payload));
@@ -245,6 +264,9 @@ public class MainActivity extends AppCompatActivity {
         tvSpeed.setVisibility(View.VISIBLE);
         bytesSent.set(0);
         bytesReceived.set(0);
+        sentPacketCount.set(0);
+        lostPacketCount.set(0);
+        lastReceivedSeq = -1;
         lastBytesSent = 0;
         lastBytesReceived = 0;
 
@@ -255,12 +277,14 @@ public class MainActivity extends AppCompatActivity {
 
                 long currentSent = bytesSent.get();
                 long currentReceived = bytesReceived.get();
+                long sentCount = sentPacketCount.get();
+                long lost = lostPacketCount.get();
                 double sSpeed = (currentSent - lastBytesSent) / 1024.0;
                 double rSpeed = (currentReceived - lastBytesReceived) / 1024.0;
                 lastBytesSent = currentSent;
                 lastBytesReceived = currentReceived;
 
-                tvSpeed.setText(String.format("发送: %.1fKB/s | 接收: %.1fKB/s", sSpeed, rSpeed));
+                tvSpeed.setText(String.format("发送: %.1fKB/s | 接收: %.1fKB/s | 丢包: %d | 已经发送:%d", sSpeed, rSpeed, lost, sentCount));
 
                 speedHandler.postDelayed(this, 1000);
             }
@@ -269,9 +293,21 @@ public class MainActivity extends AppCompatActivity {
 
         new Thread(() -> {
             while (isStressTesting && isConnected()) {
-                int size = random.nextInt(4096) + 1;
+                int size = random.nextInt(4096) + 8; // At least 8 bytes for sequence
                 byte[] data = new byte[size];
                 random.nextBytes(data);
+
+                // Set sequence number (first 8 bytes)
+                long seq = sentPacketCount.getAndIncrement();
+                data[0] = (byte) ((seq >> 56) & 0xFF);
+                data[1] = (byte) ((seq >> 48) & 0xFF);
+                data[2] = (byte) ((seq >> 40) & 0xFF);
+                data[3] = (byte) ((seq >> 32) & 0xFF);
+                data[4] = (byte) ((seq >> 24) & 0xFF);
+                data[5] = (byte) ((seq >> 16) & 0xFF);
+                data[6] = (byte) ((seq >> 8) & 0xFF);
+                data[7] = (byte) (seq & 0xFF);
+
                 sendData(data, false);
                 try { Thread.sleep(10); } catch (InterruptedException ignored) {}
             }
