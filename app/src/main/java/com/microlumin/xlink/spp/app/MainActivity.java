@@ -180,7 +180,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void startServer() {
         stopAll();
-        sppServer = new SppServer(callback);
+        sppServer = new SppServer(this, callback);
         sppServer.start();
         tvStatus.setText("等待客户端连接...");
         btnStart.setText("停止");

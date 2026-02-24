@@ -4,6 +4,10 @@ import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import com.microlumin.xlink.spp.common.XLog;
 import com.microlumin.xlink.spp.common.SppCallback;
 import com.microlumin.xlink.spp.common.SppConstants;
@@ -14,12 +18,33 @@ import java.io.IOException;
 public class SppServer {
     private static final String TAG = "SppServer";
     private static final String NAME = "SppServer";
-
+    private final Context context;
     private final BluetoothAdapter bluetoothAdapter;
     private AcceptThread acceptThread;
     private SppSocketWrapper socketWrapper;
     private final SppCallback callback;
-    private boolean isStopped = true;
+    private boolean isStarted = false;
+
+    private final BroadcastReceiver bluetoothStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
+                int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+                XLog.d(TAG, "Bluetooth state changed: " + state);
+                synchronized (SppServer.this) {
+                    if (!isStarted) return;
+                    if (state == BluetoothAdapter.STATE_ON) {
+                        XLog.d(TAG, "Bluetooth ON, starting AcceptThread");
+                        startAcceptThread();
+                    } else if (state == BluetoothAdapter.STATE_OFF) {
+                        XLog.d(TAG, "Bluetooth OFF, stopping threads");
+                        stopThreads();
+                    }
+                }
+            }
+        }
+    };
 
     private final SppCallback internalCallback = new SppCallback() {
         @Override
@@ -31,7 +56,7 @@ public class SppServer {
         public void onDisconnected() {
             if (callback != null) callback.onDisconnected();
             synchronized (SppServer.this) {
-                if (!isStopped) {
+                if (isStarted && bluetoothAdapter.isEnabled()) {
                     XLog.d(TAG, "Re-starting AcceptThread after disconnection");
                     startAcceptThread();
                 }
@@ -49,29 +74,38 @@ public class SppServer {
         }
     };
 
-    public SppServer(SppCallback callback) {
+    public SppServer(Context context, SppCallback callback) {
+        this.context = context.getApplicationContext();
         this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         this.callback = callback;
     }
 
     public synchronized void start() {
         XLog.d(TAG, "start()");
-        isStopped = false;
-        stopThreads();
-        startAcceptThread();
-    }
+        if (isStarted) return;
+        isStarted = true;
 
-    private void startAcceptThread() {
-        if (acceptThread != null) {
-            acceptThread.cancel();
+        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        context.registerReceiver(bluetoothStateReceiver, filter);
+
+        if (bluetoothAdapter.isEnabled()) {
+            startAcceptThread();
+        } else {
+            XLog.w(TAG, "Bluetooth is disabled, waiting for it to turn on");
         }
-        acceptThread = new AcceptThread();
-        acceptThread.start();
     }
 
     public synchronized void stop() {
         XLog.d(TAG, "stop()");
-        isStopped = true;
+        if (!isStarted) return;
+        isStarted = false;
+
+        try {
+            context.unregisterReceiver(bluetoothStateReceiver);
+        } catch (Exception e) {
+            XLog.e(TAG, "Error unregistering receiver", e);
+        }
+
         stopThreads();
     }
 
@@ -84,6 +118,14 @@ public class SppServer {
             socketWrapper.stop();
             socketWrapper = null;
         }
+    }
+
+    private void startAcceptThread() {
+        if (acceptThread != null) {
+            acceptThread.cancel();
+        }
+        acceptThread = new AcceptThread();
+        acceptThread.start();
     }
 
     public synchronized boolean send(byte[] data) {
