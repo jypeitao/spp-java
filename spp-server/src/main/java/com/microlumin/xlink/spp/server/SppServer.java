@@ -4,8 +4,7 @@ import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.util.Log;
-
+import com.microlumin.xlink.spp.common.XLog;
 import com.microlumin.xlink.spp.common.SppCallback;
 import com.microlumin.xlink.spp.common.SppConstants;
 import com.microlumin.xlink.spp.common.SppSocketWrapper;
@@ -33,7 +32,7 @@ public class SppServer {
             if (callback != null) callback.onDisconnected();
             synchronized (SppServer.this) {
                 if (!isStopped) {
-                    Log.d(TAG, "Re-starting AcceptThread after disconnection");
+                    XLog.d(TAG, "Re-starting AcceptThread after disconnection");
                     startAcceptThread();
                 }
             }
@@ -56,7 +55,7 @@ public class SppServer {
     }
 
     public synchronized void start() {
-        Log.d(TAG, "start()");
+        XLog.d(TAG, "start()");
         isStopped = false;
         stopThreads();
         startAcceptThread();
@@ -71,7 +70,7 @@ public class SppServer {
     }
 
     public synchronized void stop() {
-        Log.d(TAG, "stop()");
+        XLog.d(TAG, "stop()");
         isStopped = true;
         stopThreads();
     }
@@ -103,23 +102,23 @@ public class SppServer {
             try {
                 tmp = bluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME, SppConstants.SPP_UUID);
             } catch (IOException e) {
-                Log.e(TAG, "Socket listen() failed", e);
+                XLog.e(TAG, "Socket listen() failed", e);
             }
             serverSocket = tmp;
         }
 
         public void run() {
-            Log.d(TAG, "AcceptThread started");
+            XLog.d(TAG, "AcceptThread started");
             BluetoothSocket socket = null;
             while (true) {
                 try {
                     if (serverSocket == null) {
-                        Log.e(TAG, "serverSocket is null, exiting");
+                        XLog.e(TAG, "serverSocket is null, exiting");
                         break;
                     }
                     socket = serverSocket.accept();
                 } catch (IOException e) {
-                    Log.d(TAG, "Socket accept() failed or serverSocket closed: " + e.getMessage());
+                    XLog.d(TAG, "Socket accept() failed or serverSocket closed: " + e.getMessage());
                     break;
                 }
 
@@ -127,11 +126,11 @@ public class SppServer {
                     synchronized (SppServer.this) {
                         if (acceptThread != this) {
                             // 这个线程已经被取消了，关闭这个socket
-                            Log.d(TAG, "AcceptThread has been cancelled, closing accepted socket");
+                            XLog.d(TAG, "AcceptThread has been cancelled, closing accepted socket");
                             try {
                                 socket.close();
                             } catch (IOException e) {
-                                Log.e(TAG, "Error closing redundant socket", e);
+                                XLog.e(TAG, "Error closing redundant socket", e);
                             }
                             break;
                         }
@@ -141,7 +140,7 @@ public class SppServer {
                     }
                 }
             }
-            Log.d(TAG, "AcceptThread finished");
+            XLog.d(TAG, "AcceptThread finished");
         }
 
         private void cancel() {
@@ -150,7 +149,7 @@ public class SppServer {
                     serverSocket.close();
                 }
             } catch (IOException e) {
-                Log.e(TAG, "serverSocket close() failed", e);
+                XLog.e(TAG, "serverSocket close() failed", e);
             }
         }
     }

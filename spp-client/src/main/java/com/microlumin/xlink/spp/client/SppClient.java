@@ -8,8 +8,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.util.Log;
-
+import com.microlumin.xlink.spp.common.XLog;
 import com.microlumin.xlink.spp.common.SppCallback;
 import com.microlumin.xlink.spp.common.SppConstants;
 import com.microlumin.xlink.spp.common.SppSocketWrapper;
@@ -72,7 +71,7 @@ public class SppClient {
             try {
                 tmp = device.createRfcommSocketToServiceRecord(SppConstants.SPP_UUID);
             } catch (IOException e) {
-                Log.e(TAG, "Socket create() failed", e);
+                XLog.e(TAG, "Socket create() failed", e);
             }
             socket = tmp;
         }
@@ -81,7 +80,7 @@ public class SppClient {
         public void run() {
             BluetoothDevice device = socket.getRemoteDevice();
             if (device.getBondState() == BluetoothDevice.BOND_NONE) {
-                Log.d(TAG, "Device not bonded, initiating pairing and waiting for broadcast...");
+                XLog.d(TAG, "Device not bonded, initiating pairing and waiting for broadcast...");
                 final Object bondLock = new Object();
                 BroadcastReceiver receiver = new BroadcastReceiver() {
                     @Override
@@ -91,7 +90,7 @@ public class SppClient {
                             BluetoothDevice bondedDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                             if (bondedDevice != null && bondedDevice.getAddress().equals(device.getAddress())) {
                                 int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE);
-                                Log.d(TAG, "Device bonded (state: " + state + ")");
+                                XLog.d(TAG, "Device bonded (state: " + state + ")");
                                 if (state == BluetoothDevice.BOND_BONDED || state == BluetoothDevice.BOND_NONE) {
                                     synchronized (bondLock) {
                                         bondLock.notifyAll();
@@ -112,7 +111,7 @@ public class SppClient {
                         }
                     }
                 } catch (InterruptedException e) {
-                    Log.e(TAG, "Interrupted while waiting for bonding", e);
+                    XLog.e(TAG, "Interrupted while waiting for bonding", e);
                 } finally {
                     try {
                         context.unregisterReceiver(receiver);
@@ -124,7 +123,7 @@ public class SppClient {
 
             // 检查配对状态，只有配对成功才继续连接
             if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
-                Log.w(TAG, "Device not bonded (state: " + device.getBondState() + "), skipping connect");
+                XLog.w(TAG, "Device not bonded (state: " + device.getBondState() + "), skipping connect");
                 synchronized (SppClient.this) {
                     if (connectThread == this) {
                         if (callback != null) callback.onError("Device pairing failed or cancelled");
@@ -135,22 +134,22 @@ public class SppClient {
 
             try {
                 if (bluetoothAdapter.isDiscovering()) {
-                    Log.i(TAG, "cancelDiscovery");
+                    XLog.i(TAG, "cancelDiscovery");
                     bluetoothAdapter.cancelDiscovery();
                 }
             } catch (SecurityException e) {
-                Log.e(TAG, "Missing BLUETOOTH_SCAN permission to check/cancel discovery", e);
+                XLog.e(TAG, "Missing BLUETOOTH_SCAN permission to check/cancel discovery", e);
             }
 
             try {
                 if (socket == null) return;
                 socket.connect();
             } catch (IOException e) {
-                Log.e(TAG, "Socket connect() failed", e);
+                XLog.e(TAG, "Socket connect() failed", e);
                 try {
                     socket.close();
                 } catch (IOException e2) {
-                    Log.e(TAG, "unable to close() socket during connection failure", e2);
+                    XLog.e(TAG, "unable to close() socket during connection failure", e2);
                 }
                 synchronized (SppClient.this) {
                     if (connectThread == this) {
@@ -163,11 +162,11 @@ public class SppClient {
             synchronized (SppClient.this) {
                 if (connectThread != this) {
                     // This thread was cancelled or replaced
-                    Log.d(TAG, "ConnectThread has been cancelled, closing socket");
+                    XLog.d(TAG, "ConnectThread has been cancelled, closing socket");
                     try {
                         socket.close();
                     } catch (IOException e) {
-                        Log.e(TAG, "Error closing redundant socket", e);
+                        XLog.e(TAG, "Error closing redundant socket", e);
                     }
                     return;
                 }
@@ -182,7 +181,7 @@ public class SppClient {
                     socket.close();
                 }
             } catch (IOException e) {
-                Log.e(TAG, "socket close() failed", e);
+                XLog.e(TAG, "socket close() failed", e);
             }
         }
     }

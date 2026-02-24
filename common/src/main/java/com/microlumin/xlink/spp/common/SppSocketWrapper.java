@@ -1,7 +1,6 @@
 package com.microlumin.xlink.spp.common;
 
 import android.bluetooth.BluetoothSocket;
-import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,7 +23,7 @@ public class SppSocketWrapper {
             this.inputStream = socket.getInputStream();
             this.outputStream = socket.getOutputStream();
         } catch (IOException e) {
-            Log.e(TAG, "Error getting streams", e);
+            XLog.e(TAG, "Error getting streams", e);
         }
     }
 
@@ -47,12 +46,12 @@ public class SppSocketWrapper {
                                 callback.onDataReceived(Arrays.copyOf(buffer, bytes));
                             }
                         } else if (bytes == -1) {
-                            Log.d(TAG, "Socket closed by remote");
+                            XLog.d(TAG, "Socket closed by remote");
                             break;
                         }
                     } catch (IOException e) {
                         if (isRunning) {
-                            Log.e(TAG, "Error reading from stream", e);
+                            XLog.e(TAG, "Error reading from stream", e);
                             if (callback != null) callback.onDisconnected();
                         }
                         break;
@@ -71,7 +70,7 @@ public class SppSocketWrapper {
                 outputStream.flush();
                 return true;
             } catch (IOException e) {
-                Log.e(TAG, "Error writing to stream", e);
+                XLog.e(TAG, "Error writing to stream", e);
                 if (callback != null) callback.onError("Send failed: " + e.getMessage());
             }
         }
@@ -89,7 +88,7 @@ public class SppSocketWrapper {
                 socket.close();
             }
         } catch (IOException e) {
-            Log.e(TAG, "Error closing socket", e);
+            XLog.e(TAG, "Error closing socket", e);
         }
     }
 
