@@ -4,6 +4,9 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
@@ -14,6 +17,11 @@ import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicLong;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -35,13 +43,22 @@ public class MainActivity extends AppCompatActivity {
     private RadioGroup rgMode;
     private RadioButton rbServer, rbClient;
     private EditText etMac, etMessage;
-    private Button btnStart, btnSend;
-    private TextView tvStatus;
+    private Button btnStart, btnSend, btnStressTest;
+    private TextView tvStatus, tvSpeed;
     private LinearLayout containerMessages;
     private ScrollView scrollMessages;
 
     private SppServer sppServer;
     private SppClient sppClient;
+
+    private volatile boolean isStressTesting = false;
+    private final Handler speedHandler = new Handler(Looper.getMainLooper());
+    private Runnable speedRunnable;
+    private final AtomicLong bytesSent = new AtomicLong(0);
+    private final AtomicLong bytesReceived = new AtomicLong(0);
+    private long lastBytesSent = 0;
+    private long lastBytesReceived = 0;
+    private final Random random = new Random();
 
     private enum Mode { SERVER, CLIENT }
     private Mode currentMode = Mode.SERVER;
@@ -84,7 +101,12 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onPacketReceived(byte[] payload) {
-            runOnUiThread(() -> addMessage("对方(包): " + new String(payload)));
+            bytesReceived.addAndGet(payload.length);
+            runOnUiThread(() -> {
+                if (!isStressTesting) {
+                    addMessage("对方(包): " + new String(payload));
+                }
+            });
         }
 
         @Override
@@ -119,10 +141,12 @@ public class MainActivity extends AppCompatActivity {
         etMac = findViewById(R.id.et_mac);
         btnStart = findViewById(R.id.btn_start);
         tvStatus = findViewById(R.id.tv_status);
+        tvSpeed = findViewById(R.id.tv_speed);
         containerMessages = findViewById(R.id.container_messages);
         scrollMessages = findViewById(R.id.scroll_messages);
         etMessage = findViewById(R.id.et_message);
         btnSend = findViewById(R.id.btn_send);
+        btnStressTest = findViewById(R.id.btn_stress_test);
     }
 
     private void initUi() {
@@ -170,20 +194,102 @@ public class MainActivity extends AppCompatActivity {
         btnSend.setOnClickListener(v -> {
             String text = etMessage.getText().toString();
             if (TextUtils.isEmpty(text)) return;
-            boolean ok = false;
-            byte[] data = text.getBytes();
-            if (currentMode == Mode.SERVER && sppServer != null) {
-                ok = sppServer.sendPacket(data);
-            } else if (currentMode == Mode.CLIENT && sppClient != null) {
-                ok = sppClient.sendPacket(data);
-            }
-            if (ok) {
-                addMessage("我: " + text);
-                etMessage.setText("");
-            } else {
-                Toast.makeText(this, "发送失败（未连接或通道异常）", Toast.LENGTH_SHORT).show();
-            }
+            sendData(text.getBytes(), true);
+            etMessage.setText("");
         });
+
+        btnStressTest.setOnClickListener(v -> toggleStressTest());
+    }
+
+    private void sendData(byte[] data, boolean showInUi) {
+        boolean ok = false;
+        if (currentMode == Mode.SERVER && sppServer != null) {
+            ok = sppServer.sendPacket(data);
+        } else if (currentMode == Mode.CLIENT && sppClient != null) {
+            ok = sppClient.sendPacket(data);
+        }
+        if (ok) {
+            bytesSent.addAndGet(data.length);
+            if (showInUi && !isStressTesting) {
+                addMessage("我: " + new String(data));
+            }
+        } else if (showInUi) {
+            Toast.makeText(this, "发送失败（未连接或通道异常）", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void toggleStressTest() {
+        if (isStressTesting) {
+            stopStressTest();
+        } else {
+            if (!isConnected()) {
+                Toast.makeText(this, "未连接，无法开始压力测试", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            startStressTest();
+        }
+    }
+
+    private boolean isConnected() {
+        if (currentMode == Mode.SERVER && sppServer != null) {
+            return sppServer.getState() == SppState.CONNECTED;
+        } else if (currentMode == Mode.CLIENT && sppClient != null) {
+            return sppClient.getState() == SppState.CONNECTED;
+        }
+        return false;
+    }
+
+    private void startStressTest() {
+        isStressTesting = true;
+        btnStressTest.setText("停止压测");
+        tvSpeed.setVisibility(View.VISIBLE);
+        bytesSent.set(0);
+        bytesReceived.set(0);
+        lastBytesSent = 0;
+        lastBytesReceived = 0;
+
+        speedRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (!isStressTesting) return;
+
+                long currentSent = bytesSent.get();
+                long currentReceived = bytesReceived.get();
+                double sSpeed = (currentSent - lastBytesSent) / 1024.0;
+                double rSpeed = (currentReceived - lastBytesReceived) / 1024.0;
+                lastBytesSent = currentSent;
+                lastBytesReceived = currentReceived;
+
+                tvSpeed.setText(String.format("发送: %.1fKB/s | 接收: %.1fKB/s", sSpeed, rSpeed));
+
+                speedHandler.postDelayed(this, 1000);
+            }
+        };
+        speedHandler.postDelayed(speedRunnable, 1000);
+
+        new Thread(() -> {
+            while (isStressTesting && isConnected()) {
+                int size = random.nextInt(4096) + 1;
+                byte[] data = new byte[size];
+                random.nextBytes(data);
+                sendData(data, false);
+                try { Thread.sleep(10); } catch (InterruptedException ignored) {}
+            }
+            if (isStressTesting) {
+                runOnUiThread(this::stopStressTest);
+            }
+        }).start();
+    }
+
+    private void stopStressTest() {
+        isStressTesting = false;
+        btnStressTest.setText("压力测试");
+        tvSpeed.setVisibility(View.INVISIBLE);
+        tvSpeed.setText("");
+        if (speedRunnable != null) {
+            speedHandler.removeCallbacks(speedRunnable);
+            speedRunnable = null;
+        }
     }
 
     private boolean isRunning() {
