@@ -1,10 +1,20 @@
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
+
 plugins {
     alias(libs.plugins.android.library)
+    id("maven-publish")
 }
 
 android {
     namespace = "com.microlumin.xlink.spp.server"
     compileSdk = 36
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
 
     defaultConfig {
         minSdk = 28
@@ -25,6 +35,32 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+}
+
+afterEvaluate {
+    extensions.configure<PublishingExtension> {
+        publications {
+            create<MavenPublication>("maven") {
+                from(components["release"])
+                artifactId = "spp-server"
+            }
+        }
+        repositories {
+            maven {
+                val repositoryUrl = if (version.toString().endsWith("SNAPSHOT")) {
+                    "http://192.168.1.186:8081/repository/mlaixr-snapshot/"
+                } else {
+                    "http://192.168.1.186:8081/repository/mlaixr-release/"
+                }
+                url = uri(repositoryUrl)
+                isAllowInsecureProtocol = true
+                credentials {
+                    username = project.extra["mavenUsername"] as String
+                    password = project.extra["mavenPassword"] as String
+                }
+            }
+        }
     }
 }
 

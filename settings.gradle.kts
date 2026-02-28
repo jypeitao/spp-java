@@ -9,6 +9,14 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        maven {
+            url = uri("http://192.168.1.186:8081/repository/mlaixr-snapshot/")
+            isAllowInsecureProtocol = true
+        }
+        maven {
+            url = uri("http://192.168.1.186:8081/repository/mlaixr-release/")
+            isAllowInsecureProtocol = true
+        }
     }
 }
 plugins {
@@ -19,6 +27,14 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url = uri("http://192.168.1.186:8081/repository/mlaixr-snapshot/")
+            isAllowInsecureProtocol = true
+        }
+        maven {
+            url = uri("http://192.168.1.186:8081/repository/mlaixr-release/")
+            isAllowInsecureProtocol = true
+        }
     }
 }
 
