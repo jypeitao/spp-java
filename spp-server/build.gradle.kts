@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.microlumin.xlink.spp.server"
-    compileSdk = 36
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     publishing {
         singleVariant("release") {
@@ -17,7 +17,7 @@ android {
     }
 
     defaultConfig {
-        minSdk = 28
+        minSdk = libs.versions.minSdk.get().toInt()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")

@@ -1,5 +1,8 @@
 [versions]
 agp = "9.0.0"
+compileSdk = "34"
+targetSdk = "36"
+minSdk = "28"
 junit = "4.13.2"
 junitVersion = "1.1.5"
 espressoCore = "3.5.1"
