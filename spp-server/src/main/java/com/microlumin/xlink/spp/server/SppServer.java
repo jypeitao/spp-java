@@ -147,6 +147,27 @@ public class SppServer {
         setState(SppState.DISCONNECTED);
     }
 
+    /**
+     * 主动断开当前连接，断开后会自动重新进入监听状态 (如果 isStarted 为 true)
+     */
+    public synchronized void disconnect() {
+        XLog.d(TAG, "disconnect()");
+        if (socketWrapper != null) {
+            socketWrapper.stop();
+            socketWrapper = null;
+        }
+        // 由于 socketWrapper.stop() 可能不会立即触发 internalCallback 的状态回调（如果是由本地主动调用的），
+        // 我们在这里手动设置一次状态，确保 UI 和 内部逻辑同步。
+        setState(SppState.DISCONNECTED);
+        connectedDevice = null;
+
+        // 如果服务器仍在运行且蓝牙开启，重新开始监听
+        if (isStarted && bluetoothAdapter.isEnabled()) {
+            XLog.d(TAG, "Re-starting AcceptThread after manual disconnection");
+            startAcceptThread();
+        }
+    }
+
     private void stopThreads() {
         if (acceptThread != null) {
             acceptThread.cancel();
