@@ -1,5 +1,6 @@
 package com.microlumin.xlink.log;
 
+import android.annotation.SuppressLint;
 import android.util.Log;
 
 import com.mlaixr.mlutil.mlog.logger.MLogger;
@@ -18,16 +19,25 @@ public class MLog {
     public static final int WARN = 5;
     public static final int ERROR = 6;
     public static final int NONE = 7;
-    private static final String TAG = "MLog";
+    private static final String sGlobalTagPrefix = "xlink_";
     private static final String PROPERTY_KEY = "debug.mlog.level";
-    private static int sMinLevel = INFO;
+
+    private static final String DEFAULT_LEVEL = "V";
+    private static int sMinLevel = parseLevel(DEFAULT_LEVEL);
 
     static {
         updateLevelFromProperty();
     }
 
+    private static String formatTag(String tag) {
+        if (sGlobalTagPrefix == null || sGlobalTagPrefix.isEmpty()) {
+            return tag;
+        }
+        return sGlobalTagPrefix + tag;
+    }
+
     private static void updateLevelFromProperty() {
-        String levelStr = getSystemProperty(PROPERTY_KEY, "I");
+        String levelStr = getSystemProperty(PROPERTY_KEY, DEFAULT_LEVEL);
         sMinLevel = parseLevel(levelStr);
     }
 
@@ -55,44 +65,46 @@ public class MLog {
         sMinLevel = level;
     }
 
+    @SuppressLint("LogTagMismatch")
     public static void v(String tag, String msg) {
-        if (isLoggable(tag, VERBOSE)) {
-            Log.v(tag, msg);
+        if (isLoggable(VERBOSE)) {
+            Log.v(formatTag(tag), msg);
         }
     }
 
+    @SuppressLint("LogTagMismatch")
     public static void d(String tag, String msg) {
-        if (isLoggable(tag, DEBUG)) {
-            Log.d(tag, msg);
+        if (isLoggable(DEBUG)) {
+            Log.d(formatTag(tag), msg);
 //            MLogger.d(tag, msg);
         }
     }
 
     public static void i(String tag, String msg) {
-        if (isLoggable(tag, INFO)) {
-            MLogger.i(tag, msg);
+        if (isLoggable(INFO)) {
+            MLogger.i(formatTag(tag), msg);
         }
     }
 
     public static void w(String tag, String msg) {
-        if (isLoggable(tag, WARN)) {
-            MLogger.w(tag, msg);
+        if (isLoggable(WARN)) {
+            MLogger.w(formatTag(tag), msg);
         }
     }
 
     public static void e(String tag, String msg) {
-        if (isLoggable(tag, ERROR)) {
-            MLogger.e(tag, msg);
+        if (isLoggable(ERROR)) {
+            MLogger.e(formatTag(tag), msg);
         }
     }
 
     public static void e(String tag, String msg, Throwable tr) {
-        if (isLoggable(tag, ERROR)) {
-            MLogger.e(tag, msg, tr);
+        if (isLoggable(ERROR)) {
+            MLogger.e(formatTag(tag), msg, tr);
         }
     }
 
-    private static boolean isLoggable(String tag, int level) {
+    private static boolean isLoggable(int level) {
         return level >= sMinLevel;
     }
 
