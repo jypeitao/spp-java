@@ -1,6 +1,9 @@
 package com.microlumin.xlink.log;
 
 import android.util.Log;
+
+import com.mlaixr.mlutil.mlog.logger.MLogger;
+
 import java.lang.reflect.Method;
 
 /**
@@ -31,13 +34,20 @@ public class MLog {
     private static int parseLevel(String levelStr) {
         if (levelStr == null) return INFO;
         switch (levelStr.toUpperCase()) {
-            case "V": return VERBOSE;
-            case "D": return DEBUG;
-            case "I": return INFO;
-            case "W": return WARN;
-            case "E": return ERROR;
-            case "NONE": return NONE;
-            default: return INFO;
+            case "V":
+                return VERBOSE;
+            case "D":
+                return DEBUG;
+            case "I":
+                return INFO;
+            case "W":
+                return WARN;
+            case "E":
+                return ERROR;
+            case "NONE":
+                return NONE;
+            default:
+                return INFO;
         }
     }
 
@@ -54,30 +64,31 @@ public class MLog {
     public static void d(String tag, String msg) {
         if (isLoggable(tag, DEBUG)) {
             Log.d(tag, msg);
+//            MLogger.d(tag, msg);
         }
     }
 
     public static void i(String tag, String msg) {
         if (isLoggable(tag, INFO)) {
-            Log.i(tag, msg);
+            MLogger.i(tag, msg);
         }
     }
 
     public static void w(String tag, String msg) {
         if (isLoggable(tag, WARN)) {
-            Log.w(tag, msg);
+            MLogger.w(tag, msg);
         }
     }
 
     public static void e(String tag, String msg) {
         if (isLoggable(tag, ERROR)) {
-            Log.e(tag, msg);
+            MLogger.e(tag, msg);
         }
     }
 
     public static void e(String tag, String msg, Throwable tr) {
         if (isLoggable(tag, ERROR)) {
-            Log.e(tag, msg, tr);
+            MLogger.e(tag, msg, tr);
         }
     }
 

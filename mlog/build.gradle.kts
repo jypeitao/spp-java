@@ -63,6 +63,8 @@ afterEvaluate {
 }
 
 dependencies {
+    // for write log to file
+    implementation("com.mlaixr:mlutil:1.0.4")
     implementation(libs.appcompat)
     implementation(libs.material)
     testImplementation(libs.junit)
