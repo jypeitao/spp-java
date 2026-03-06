@@ -33,6 +33,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.microlumin.xlink.spp.app.BuildConfig;
 import com.microlumin.xlink.spp.common.SppCallback;
 import com.microlumin.xlink.spp.common.SppState;
 import com.microlumin.xlink.spp.client.SppClient;
@@ -151,6 +152,8 @@ public class MainActivity extends AppCompatActivity {
         bindViews();
         initUi();
         requestBtPermissionsIfNeeded();
+
+        addMessage("[系统] Git版本: " + BuildConfig.GIT_VERSION + " 分支: " + BuildConfig.GIT_BRANCH);
     }
 
     private void bindViews() {

@@ -1,3 +1,5 @@
+import java.io.ByteArrayOutputStream
+
 plugins {
     alias(libs.plugins.android.application)
 }
@@ -14,6 +16,36 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // 获取 git 提交号和分支名
+        val gitCommitId = try {
+            val stdout = ByteArrayOutputStream()
+            rootProject.exec {
+                commandLine("git", "rev-parse", "--short", "HEAD")
+                standardOutput = stdout
+            }
+            stdout.toString().trim()
+        } catch (e: Exception) {
+            "unknown"
+        }
+
+        val gitBranch = try {
+            val stdout = ByteArrayOutputStream()
+            rootProject.exec {
+                commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
+                standardOutput = stdout
+            }
+            stdout.toString().trim()
+        } catch (e: Exception) {
+            "unknown"
+        }
+
+        buildConfigField("String", "GIT_VERSION", "\"$gitCommitId\"")
+        buildConfigField("String", "GIT_BRANCH", "\"$gitBranch\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {
