@@ -21,9 +21,10 @@ public class MLog {
     public static final int NONE = 7;
     private static final String sGlobalTagPrefix = "xlink_";
     private static final String PROPERTY_KEY = "debug.mlog.level";
+    private static final String PERSIST_PROPERTY_KEY = "persist.debug.mlog.level";
 
-    private static final String DEFAULT_LEVEL = "V";
-    private static int sMinLevel = parseLevel(DEFAULT_LEVEL);
+    private static final int DEFAULT_LEVEL = DEBUG;
+    private static int sMinLevel = DEFAULT_LEVEL;
 
     static {
         updateLevelFromProperty();
@@ -37,8 +38,15 @@ public class MLog {
     }
 
     private static void updateLevelFromProperty() {
-        String levelStr = getSystemProperty(PROPERTY_KEY, DEFAULT_LEVEL);
-        sMinLevel = parseLevel(levelStr);
+        var levelStr = getSystemProperty(PERSIST_PROPERTY_KEY, "");
+        if (levelStr.isEmpty()) {
+            levelStr = getSystemProperty(PROPERTY_KEY, "");
+        }
+        if (levelStr.isEmpty()) {
+            sMinLevel = DEFAULT_LEVEL;
+        } else {
+            sMinLevel = parseLevel(levelStr);
+        }
     }
 
     private static int parseLevel(String levelStr) {
@@ -57,7 +65,7 @@ public class MLog {
             case "NONE":
                 return NONE;
             default:
-                return INFO;
+                return DEFAULT_LEVEL;
         }
     }
 
