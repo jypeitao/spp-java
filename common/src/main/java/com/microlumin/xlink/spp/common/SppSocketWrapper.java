@@ -18,6 +18,15 @@ public class SppSocketWrapper {
     private Thread readThread;
     private final SppPacketDecoder decoder = new SppPacketDecoder();
 
+    /**
+     * M6 user ver:
+     * java.io.IOException: ioctl failed: EACCES (Permission denied)
+     * at android.net.LocalSocketImpl$SocketOutputStream.flush(LocalSocketImpl.java:176)
+     * at android.bluetooth.BluetoothSocket.flush(BluetoothSocket.java:523)
+     * at android.bluetooth.BluetoothOutputStream.flush(BluetoothOutputStream.java:88)
+     */
+    private static final boolean NEED_FLUSH = false;
+
     public SppSocketWrapper(BluetoothSocket socket, SppCallback callback) {
         this.socket = socket;
         this.callback = callback;
@@ -94,7 +103,9 @@ public class SppSocketWrapper {
                     outputStream.write(data, offset, length);
                     offset += length;
                 }
-                outputStream.flush();
+                if (NEED_FLUSH) {
+                    outputStream.flush();
+                }
                 return true;
             } catch (IOException e) {
                 XLog.e(TAG, "Error writing to stream", e);
