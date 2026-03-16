@@ -195,8 +195,12 @@ public class SppServer {
     }
 
     public synchronized boolean sendPacket(byte[] payload) {
+        return sendPacket(payload, true);
+    }
+
+    public synchronized boolean sendPacket(byte[] payload, boolean flush) {
         if (socketWrapper != null) {
-            return socketWrapper.sendPacket(payload);
+            return socketWrapper.sendPacket(payload, flush);
         }
         return false;
     }

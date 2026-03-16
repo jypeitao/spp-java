@@ -104,11 +104,15 @@ public class SppClient {
         return false;
     }
 
-    public synchronized boolean sendPacket(byte[] payload) {
+    public synchronized boolean sendPacket(byte[] payload, boolean flush) {
         if (socketWrapper != null) {
-            return socketWrapper.sendPacket(payload);
+            return socketWrapper.sendPacket(payload, flush);
         }
         return false;
+    }
+
+    public synchronized boolean sendPacket(byte[] payload) {
+        return sendPacket(payload, true);
     }
 
     private class ConnectThread extends Thread {

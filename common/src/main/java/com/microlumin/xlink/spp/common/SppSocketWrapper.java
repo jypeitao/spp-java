@@ -18,15 +18,6 @@ public class SppSocketWrapper {
     private Thread readThread;
     private final SppPacketDecoder decoder = new SppPacketDecoder();
 
-    /**
-     * M6 user ver:
-     * java.io.IOException: ioctl failed: EACCES (Permission denied)
-     * at android.net.LocalSocketImpl$SocketOutputStream.flush(LocalSocketImpl.java:176)
-     * at android.bluetooth.BluetoothSocket.flush(BluetoothSocket.java:523)
-     * at android.bluetooth.BluetoothOutputStream.flush(BluetoothOutputStream.java:88)
-     */
-    private static final boolean NEED_FLUSH = false;
-
     public SppSocketWrapper(BluetoothSocket socket, SppCallback callback) {
         this.socket = socket;
         this.callback = callback;
@@ -71,7 +62,8 @@ public class SppSocketWrapper {
                     } catch (IOException e) {
                         if (isRunning) {
                             XLog.e(TAG, "Error reading from stream", e);
-                            if (callback != null) callback.onStateChanged(SppState.DISCONNECTED, null, null);
+                            if (callback != null)
+                                callback.onStateChanged(SppState.DISCONNECTED, null, null);
                         }
                         break;
                     }
@@ -83,7 +75,7 @@ public class SppSocketWrapper {
     }
 
     public synchronized boolean send(byte[] data) {
-        return sendInternal(data);
+        return sendInternal(data, true);
     }
 
     /**
@@ -91,10 +83,15 @@ public class SppSocketWrapper {
      */
     public synchronized boolean sendPacket(byte[] payload) {
         byte[] packet = SppPacketDecoder.encode(payload);
-        return sendInternal(packet);
+        return sendPacket(packet, true);
     }
 
-    private boolean sendInternal(byte[] data) {
+    public synchronized boolean sendPacket(byte[] payload, boolean flush) {
+        byte[] packet = SppPacketDecoder.encode(payload);
+        return sendInternal(packet, flush);
+    }
+
+    private boolean sendInternal(byte[] data, boolean flush) {
         if (outputStream != null) {
             try {
                 int offset = 0;
@@ -103,7 +100,7 @@ public class SppSocketWrapper {
                     outputStream.write(data, offset, length);
                     offset += length;
                 }
-                if (NEED_FLUSH) {
+                if (flush) {
                     outputStream.flush();
                 }
                 return true;
