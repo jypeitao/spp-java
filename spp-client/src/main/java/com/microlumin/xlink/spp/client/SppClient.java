@@ -54,9 +54,10 @@ public class SppClient {
     private synchronized void setState(SppState state, String deviceName, String deviceAddress) {
         if (this.state != state) {
             XLog.d(TAG, "State changed: " + this.state + " -> " + state);
+            var prev = this.state;
             this.state = state;
             if (callback != null) {
-                callback.onStateChanged(state, deviceName, deviceAddress);
+                callback.onStateChanged(state, prev, deviceName, deviceAddress);
             }
         }
     }
@@ -247,7 +248,7 @@ public class SppClient {
     private void manageConnectedSocket(BluetoothSocket socket) {
         socketWrapper = new SppSocketWrapper(socket, new SppCallback() {
             @Override
-            public void onStateChanged(SppState state, String deviceName, String deviceAddress) {
+            public void onStateChanged(SppState state, SppState prev, String deviceName, String deviceAddress) {
                 if (state == SppState.DISCONNECTED) {
                     synchronized (SppClient.this) {
                         setState(SppState.DISCONNECTED);

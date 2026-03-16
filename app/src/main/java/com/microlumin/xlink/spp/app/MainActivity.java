@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
 
     private final SppCallback callback = new SppCallback() {
         @Override
-        public void onStateChanged(SppState state, String deviceName, String deviceAddress) {
+        public void onStateChanged(SppState state, SppState prev, String deviceName, String deviceAddress) {
             runOnUiThread(() -> {
                 updateStatusText();
                 // 根据状态更新按钮文案（尤其是客户端断开后应显示“连接客户端”）
