@@ -71,6 +71,7 @@ dependencies {
     implementation(project(":common"))
     implementation(project(":spp-server"))
     implementation(project(":spp-client"))
+    implementation(project(":br"))
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

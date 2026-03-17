@@ -1,0 +1,11 @@
+R_DEF: Internal format may change without notice
+local
+id btn_connect_a2dp
+id btn_connect_hfp
+id btn_disconnect_a2dp
+id btn_disconnect_hfp
+id et_mac
+id tv_status
+layout activity_main
+mipmap ic_launcher
+mipmap ic_launcher_round

@@ -1,0 +1,50 @@
+[
+    {
+        "merged": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-debug-32:\\layout_activity_main.xml.flat",
+        "source": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-main-34:\\layout\\activity_main.xml"
+    },
+    {
+        "merged": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-debug-32:\\mipmap-xxxhdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-main-34:\\mipmap-xxxhdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-debug-32:\\mipmap-hdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-main-34:\\mipmap-hdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-debug-32:\\mipmap-xxhdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-main-34:\\mipmap-xxhdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-debug-32:\\mipmap-mdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-main-34:\\mipmap-mdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-debug-32:\\mipmap-xxxhdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-main-34:\\mipmap-xxxhdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.microlumin.xlink.br.app.br-app-debug-32:/layout_activity_main.xml.flat",
+        "source": "com.microlumin.xlink.br.app.br-app-main-34:/layout/activity_main.xml"
+    },
+    {
+        "merged": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-debug-32:\\mipmap-hdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-main-34:\\mipmap-hdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-debug-32:\\mipmap-xhdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-main-34:\\mipmap-xhdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-debug-32:\\mipmap-xxhdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-main-34:\\mipmap-xxhdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-debug-32:\\mipmap-xhdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-main-34:\\mipmap-xhdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-debug-32:\\mipmap-mdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\PC\\.gradle\\daemon\\8.11\\com.microlumin.xlink.br.app.br-app-main-34:\\mipmap-mdpi\\ic_launcher.webp"
+    }
+]
