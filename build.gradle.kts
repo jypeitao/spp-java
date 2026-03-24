@@ -6,7 +6,7 @@ plugins {
 
 allprojects {
     group = "com.microlumin.xlink"
-    version = "1.0.3" // 您可以根据需要修改版本号
+    version = "1.0.4" // 您可以根据需要修改版本号
 
     // 从 local.properties 加载凭据
     val localProperties = java.util.Properties()
