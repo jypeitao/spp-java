@@ -66,7 +66,6 @@ afterEvaluate {
 
 dependencies {
     implementation(project(":common"))
-    implementation(libs.appcompat)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
