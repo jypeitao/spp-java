@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.microlumin.xlink.spp.app"
-        minSdk = libs.versions.minSdk.get().toInt()
+        minSdk = 27
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
@@ -18,27 +18,13 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // 获取 git 提交号和分支名
-        val gitCommitId = try {
-            val stdout = ByteArrayOutputStream()
-            rootProject.exec {
-                commandLine("git", "rev-parse", "--short", "HEAD")
-                standardOutput = stdout
-            }
-            stdout.toString().trim()
-        } catch (e: Exception) {
-            "unknown"
-        }
+        val gitCommitId = providers.exec {
+            commandLine("git", "rev-parse", "--short", "HEAD")
+        }.standardOutput.asText.get().trim()
 
-        val gitBranch = try {
-            val stdout = ByteArrayOutputStream()
-            rootProject.exec {
-                commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
-                standardOutput = stdout
-            }
-            stdout.toString().trim()
-        } catch (e: Exception) {
-            "unknown"
-        }
+        val gitBranch = providers.exec {
+            commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
+        }.standardOutput.asText.get().trim()
 
         buildConfigField("String", "GIT_VERSION", "\"$gitCommitId\"")
         buildConfigField("String", "GIT_BRANCH", "\"$gitBranch\"")
